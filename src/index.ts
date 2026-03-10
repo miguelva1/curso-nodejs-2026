@@ -75,6 +75,42 @@ app.post('/usuarios', (req, res) => {
     res.status(201).json(nuevoUsuario);
 });
 
+// EDITAR un usuario
+app.put('/usuarios/:id', (req, res) => {
+    const idBuscado = parseInt(req.params.id);
+    const { nombre, puesto } = req.body;
+
+    // Buscamos el índice (la posición) del usuario en el array
+    const indice = usuarios.findIndex(u => u.id === idBuscado);
+
+    if (indice === -1) {
+        return res.status(404).json({ error: "Usuario no encontrado para editar" });
+    }
+
+    // Actualizamos los datos manteniendo el mismo ID
+    usuarios[indice] = { id: idBuscado, nombre, puesto };
+
+    res.json({
+        message: "Usuario actualizado con éxito",
+        usuario: usuarios[indice]
+    });
+});
+
+// ELIMINAR un usuario
+app.delete('/usuarios/:id', (req, res) => {
+    const idBuscado = parseInt(req.params.id);
+    
+    // Filtramos el array: nos quedamos con todos MENOS con el que tiene el ID buscado
+    const totalAntes = usuarios.length;
+    usuarios = usuarios.filter(u => u.id !== idBuscado);
+
+    if (usuarios.length === totalAntes) {
+        return res.status(404).json({ error: "No se encontró el usuario para borrar" });
+    }
+
+    res.json({ message: `Usuario con ID ${idBuscado} eliminado correctamente` });
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Servidor en escucha en http://localhost:3000`);
 });
