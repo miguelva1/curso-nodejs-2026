@@ -1,5 +1,12 @@
-export interface Usuario {
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+
+@Entity()
+export class Usuario {
+
+    @PrimaryGeneratedColumn()
     id: number;
+    @Column()
     nombre: string;
+    @Column()
     puesto: string;
 }

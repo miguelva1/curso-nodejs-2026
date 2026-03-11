@@ -1,21 +1,20 @@
 import { Request, Response } from 'express';
+import { AppDataSource } from "../config/data-source";
 import { Usuario } from '../models/usuario.model';
 
-// Nuestra "Base de Datos" ahora vive en el controlador
-let usuarios: Usuario[] = [
-    { id: 1, nombre: "Miguel Valencia", puesto: "Backend Developer" },
-    { id: 2, nombre: "Mati", puesto: "QA Tester" }
-];
+
+const usuarioRepository = AppDataSource.getRepository(Usuario);
 
 // 1. Obtener todos los usuarios
-export const getUsuarios = (req: Request, res: Response) => {
+export const getUsuarios = async (req: Request, res: Response) => {
+    const usuarios = await usuarioRepository.find();
     res.json(usuarios);
 };
 
 // 2. Obtener un usuario por ID
-export const getUsuarioById = (req: Request, res: Response) => {
+export const getUsuarioById = async (req: Request, res: Response) => {
     const idBuscado = parseInt(req.params.id as string);
-    const usuario = usuarios.find(u => u.id === idBuscado);
+    const usuario = await usuarioRepository.findOneBy({ id: idBuscado });   
 
     if (!usuario) {
         return res.status(404).json({ error: "Usuario no encontrado" });
@@ -24,47 +23,44 @@ export const getUsuarioById = (req: Request, res: Response) => {
 };
 
 // 3. Crear un usuario
-export const createUsuario = (req: Request, res: Response) => {
+export const createUsuario = async (req: Request, res: Response) => {
     const { nombre, puesto } = req.body;
 
     if (!nombre || !puesto) {
         return res.status(400).json({ error: "Faltan datos: nombre y puesto son obligatorios" });
     }
 
-    const nuevoUsuario: Usuario = {
-        id: usuarios.length + 1,
-        nombre,
-        puesto
-    };
-
-    usuarios.push(nuevoUsuario);
+    const nuevoUsuario = usuarioRepository.create({ nombre, puesto });
+    await usuarioRepository.save(nuevoUsuario);
+    
     res.status(201).json(nuevoUsuario);
 };
 
 // 4. Editar un usuario
-export const updateUsuario = (req: Request, res: Response) => {
+export const updateUsuario = async (req: Request, res: Response) => {
     const idBuscado = parseInt(req.params.id as string);
     const { nombre, puesto } = req.body;
-    const indice = usuarios.findIndex(u => u.id === idBuscado);
+    const usuario = await usuarioRepository.findOneBy({ id: idBuscado });
 
-    if (indice === -1) {
+    if (!usuario) {
         return res.status(404).json({ error: "Usuario no encontrado para editar" });
     }
 
-    usuarios[indice] = { id: idBuscado, nombre, puesto };
-    res.json({ message: "Actualizado con éxito", usuario: usuarios[indice] });
+    usuarioRepository.merge(usuario, { nombre, puesto });
+    const resultado = await usuarioRepository.save(usuario);
+
+    res.json(resultado);
 };
 
 // 5. Eliminar un usuario
-export const deleteUsuario = (req: Request, res: Response) => {
+export const deleteUsuario = async (req: Request, res: Response) => {
     const idBuscado = parseInt(req.params.id as string);
-    const totalAntes = usuarios.length;
-    
-    usuarios = usuarios.filter(u => u.id !== idBuscado);
+    const resultado = await usuarioRepository.delete(idBuscado);
 
-    if (usuarios.length === totalAntes) {
-        return res.status(404).json({ error: "No se encontró el usuario" });
+    if (resultado.affected === 0) {
+        return res.status(404).json({ error: "Usuario no encontrado para eliminar" });
     }
+    
 
     res.json({ message: `Usuario ${idBuscado} eliminado` });
 };
